@@ -257,7 +257,7 @@ It handles token creation, updates, and deletion with proper validation and erro
 
 <div class="modal-example-form space-y-4 text-black dark:text-white p-4">
 	{#if createdToken}
-		<div class="card p-6 space-y-4 variant-soft-success border border-success-500/30 shadow-lg">
+		<div class="card p-6 space-y-4 preset-tonal-success border border-success-500/30 shadow-lg">
 			<h3 class="text-xl font-bold text-success-700 dark:text-success-400">Invitation Token Created</h3>
 			<p class="text-sm opacity-80">Since email delivery might be disabled or delayed, you can provide this link to the user directly:</p>
 

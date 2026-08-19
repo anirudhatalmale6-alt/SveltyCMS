@@ -115,6 +115,7 @@
     "lint": "oxlint --deny-warnings --ignore-pattern 'src/types/**'",
     "lint:ci": "oxlint --deny-warnings --quiet --format=github --ignore-pattern 'src/types/**'",
     "lint:widgets": "bun run scripts/check-widget-naming.mjs && bun run scripts/check-dashboard-widget-packages.mjs",
+    "lint:design": "bun run scripts/check-design-tokens.mjs",
     "lint:tenant": "bun run scripts/lint-tenant-api.ts",
     "test:tenant": "bun run lint:tenant && bun test tests/unit/security/tenant-isolation-matrix.test.ts tests/unit/security/safe-query-manual.test.ts tests/unit/security/system-tenant-scope.test.ts tests/unit/multi-tenancy/crud-tenant-guard.test.ts",
     "test:tenant:integration": "bun run scripts/run-integration.ts --no-build tests/integration/databases/tenant-isolation.test.ts",
@@ -258,7 +259,7 @@
   },
   "overrides": {
     "brace-expansion": ">=5.0.9",
-    "cookie": ">=2.0.0",
+    "cookie": "$cookie",
     "deepmerge-ts": "^8.0.1",
     "fast-uri": ">=3.1.5",
     "nanoid": "3.3.18",

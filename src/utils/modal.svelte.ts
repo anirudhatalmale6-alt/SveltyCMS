@@ -177,7 +177,7 @@ class ModalManager {
 
     const adminWarning =
       isAdmin && !isArchive
-        ? `<div class="alert variant-filled-warning mt-4">
+        ? `<div class="alert preset-filled-warning-500 mt-4">
           <i class="fa-solid fa-triangle-exclamation"></i>
           <div><h3>Important</h3><p>This action is irreversible.</p></div>
          </div>`

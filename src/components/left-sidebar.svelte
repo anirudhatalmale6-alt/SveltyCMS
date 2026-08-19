@@ -259,7 +259,7 @@ Route-driven sidebar content (no dual collapsible section headers):
 				type="button"
 				onclick={() => toggleUIElement('leftSidebar', 'hidden')}
 				aria-label="Close Sidebar"
-			 class="p-0! min-w-0 preset-outline-surface-500">
+			 class="p-0! min-w-0 preset-outlined-surface-500">
 				<iconify-icon icon="mingcute:menu-fill" width="24"></iconify-icon>
 			</Button>
 
