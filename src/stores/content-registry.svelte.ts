@@ -114,16 +114,34 @@ class ContentStore {
     return schema;
   }
 
-  getSmartFirstCollection(_tenantId?: string | null): Schema | null {
-    // Skip system-only collections (redirects, 404_logs, etc.) that are not user content
+  /** System-only collections (redirects, 404_logs, …) are never a landing page. */
+  #isSystemCollection(schema: Schema): boolean {
     const systemPrefixes = ["redirects", "404_logs", "plugin_", "workflow_"];
-    for (const schema of this._schemas.values()) {
-      const id = (schema._id || schema.name || "").toLowerCase();
-      if (systemPrefixes.some((prefix) => id.startsWith(prefix))) continue;
-      return schema;
+    const id = String(schema._id || schema.name || "").toLowerCase();
+    return systemPrefixes.some((prefix) => id.startsWith(prefix));
+  }
+
+  getSmartFirstCollection(tenantId?: string | null): Schema | null {
+    // Resolve from the tenant's content nodes in their persisted order, so the
+    // redirect target and the sidebar's first entry are always the same
+    // collection. Walking _schemas instead gives Map insertion order — preset
+    // order immediately after setup, filesystem (alphabetical) order after any
+    // restart — which is why the landing route used to change on reboot.
+    const nodes = this.getNodesForTenant(tenantId)
+      .filter((n) => n.nodeType === "collection" && n.collectionDef)
+      .sort(
+        (a, b) => (a.order ?? 999) - (b.order ?? 999) || (a.name || "").localeCompare(b.name || ""),
+      );
+
+    for (const node of nodes) {
+      if (this.#isSystemCollection(node.collectionDef!)) continue;
+      return node.collectionDef!;
     }
-    // Fall back to first available if no user collection found
-    return Array.from(this._schemas.values())[0] || null;
+    if (nodes.length > 0) return nodes[0].collectionDef!;
+
+    // Fallback: registry populated without nodes (fast sync / early boot).
+    const schemas = Array.from(this._schemas.values());
+    return schemas.find((schema) => !this.#isSystemCollection(schema)) || schemas[0] || null;
   }
 
   setCollections(tenantId: string, collections: Schema[]) {

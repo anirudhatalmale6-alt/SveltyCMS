@@ -577,3 +577,10 @@ export interface TablePaginationProps {
 }
 
 export type ContentTypesUnion = ContentTypes | (string & {});
+
+/**
+ * Sentinel used across the content engine for "this node has no explicit order".
+ * Nodes carrying it sort last and fall back to alphabetical tie-breaking; it must
+ * never be treated as a user-chosen position.
+ */
+export const UNORDERED = 999;
