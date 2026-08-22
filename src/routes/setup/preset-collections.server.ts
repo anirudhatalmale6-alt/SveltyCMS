@@ -167,9 +167,10 @@ function resolveWidgetName(field: FieldTemplate): string {
 /**
  * Converts a CollectionPreset template into a database Schema object.
  */
-export function collectionPresetToSchema(collection: CollectionPreset): Schema {
+export function collectionPresetToSchema(collection: CollectionPreset, order?: number): Schema {
   const schema: Schema = {
     _id: collection.name,
+    ...(order !== undefined ? { order } : {}),
     name: collection.label,
     slug: collection.name,
     icon: collection.icon,
@@ -201,7 +202,10 @@ export function collectionPresetToSchema(collection: CollectionPreset): Schema {
 /**
  * Generates a TypeScript collection definition file from a CollectionPreset template.
  */
-export function generateCollectionFileContent(collection: CollectionPreset): string {
+export function generateCollectionFileContent(
+  collection: CollectionPreset,
+  order?: number,
+): string {
   const fieldEntries = collection.fields
     .map((f) => {
       const widgetName = resolveWidgetName(f);
@@ -237,7 +241,7 @@ export default {
   name: "${collection.name}",
   label: "${collection.label}",
   description: "${collection.description}",
-  icon: "${collection.icon}",${collection.livePreview !== undefined ? `\n  livePreview: ${typeof collection.livePreview === "string" ? `"${collection.livePreview}"` : collection.livePreview},` : ""}${collection.plugins?.length ? `\n  plugins: ${JSON.stringify(collection.plugins)},` : ""}
+  icon: "${collection.icon}",${order !== undefined ? `\n  order: ${order},` : ""}${collection.livePreview !== undefined ? `\n  livePreview: ${typeof collection.livePreview === "string" ? `"${collection.livePreview}"` : collection.livePreview},` : ""}${collection.plugins?.length ? `\n  plugins: ${JSON.stringify(collection.plugins)},` : ""}
   fields: [
 ${fieldEntries}
   ],
@@ -252,7 +256,9 @@ ${fieldEntries}
 export async function getWizardPresetSchemas(presetId: string): Promise<Schema[]> {
   const preset = PRESETS.find((p) => p.id === presetId);
   if (preset?.collections?.length) {
-    return preset.collections.map(collectionPresetToSchema);
+    return preset.collections.map((collection, index) =>
+      collectionPresetToSchema(collection, index),
+    );
   }
 
   // Benchmark / demo presets keep using seed.ts definitions
@@ -285,9 +291,11 @@ export async function writePresetCollectionFiles(
     await purgeBenchmarkCollectionArtifacts({ wipeAllSource: true });
   }
 
-  for (const collection of collections) {
+  // The array index is the order the preset declares — persist it so the sidebar
+  // and the post-setup redirect stop falling back to alphabetical filesystem order.
+  for (const [index, collection] of collections.entries()) {
     const fileName = `${collection.name}.ts`;
-    const content = generateCollectionFileContent(collection);
+    const content = generateCollectionFileContent(collection, index);
     await fs.writeFile(path.join(dir, fileName), content, "utf-8");
     logger.info(`📄 Wrote collection file: config/collections/${fileName}`);
   }

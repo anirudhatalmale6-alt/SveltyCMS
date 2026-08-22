@@ -18,6 +18,7 @@ import { CacheCategory } from "@src/databases/cache/types";
 import { dateToISODateString } from "@utils/date";
 import { contentStore } from "@src/stores/content-registry.svelte";
 import type { ContentNode, Schema, DatabaseId } from "./types";
+import { UNORDERED } from "./types";
 import type { IDBAdapter } from "@src/databases/db-interface";
 import { generateCategoryNodesFromPaths } from "./content-utils";
 import { cacheService } from "@src/databases/cache/cache-service";
@@ -763,8 +764,22 @@ export const contentService = {
         categoryIdMap.get(schemaPath.split("/").slice(0, -1).join("/")) ??
         undefined;
       const schemaId = String(schema._id || existing?._id || schema.name || "unknown");
+      // Precedence: GUI manifest (an explicit user reorder) > a position already
+      // recorded on the node > the order the schema itself declares (e.g. a setup
+      // preset) > UNORDERED. Without the schema tier every preset collection
+      // landed on 999 and ties resolved alphabetically, so the sidebar and the
+      // first-collection redirect drifted apart after the first restart.
+      // 999 is the project-wide "no order set" sentinel, so it must not
+      // out-rank a real declared order — otherwise the first reconcile bakes
+      // 999 into the manifest and no preset order can ever take effect.
+      const explicitOrder = (value: number | undefined): number | undefined =>
+        value === undefined || value === UNORDERED ? undefined : value;
       const manifestSort =
-        manifestOrder[schemaId] ?? manifestOrder[schemaId.toLowerCase()] ?? existing?.order ?? 999;
+        explicitOrder(manifestOrder[schemaId]) ??
+        explicitOrder(manifestOrder[schemaId.toLowerCase()]) ??
+        explicitOrder(existing?.order) ??
+        explicitOrder(schema.order) ??
+        UNORDERED;
       const hasChanged =
         !existing ||
         existing.source !== "filesystem" ||
@@ -939,7 +954,15 @@ export const contentService = {
       nodeType: "collection",
       collectionDef: schema,
       tenantId: tenantId as any,
-      order: existing?.order ?? 999,
+      // Same precedence as the full reconcile: a recorded position wins, then the
+      // order the schema declares. 999 is the "unset" sentinel, not a position —
+      // treating it as one is what pinned every preset collection to 999 here.
+      order:
+        (existing?.order !== undefined && existing.order !== UNORDERED
+          ? existing.order
+          : undefined) ??
+        schema.order ??
+        UNORDERED,
       translations: schema.translations || [],
       source: "filesystem",
       createdAt: existing?.createdAt || now,

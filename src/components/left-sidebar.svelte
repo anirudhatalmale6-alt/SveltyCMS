@@ -96,9 +96,24 @@ Route-driven sidebar content (no dual collapsible section headers):
 		collectionsPosition === 'left' || collectionsPosition === 'both'
 	);
 
+	// Mirrors the server-side resolver (getSmartFirstCollection): first *collection*
+	// node in persisted order. Taking collections[0] verbatim picked up categories
+	// and folders too, so this link could point somewhere the redirect never goes.
 	const firstCollectionPath = $derived.by(() => {
-		if (collections?.[0]) {
-			const node = collections[0] as any;
+		const firstCollectionNode = (nodes: ContentNode[]): ContentNode | null => {
+			const sorted = [...(nodes ?? [])].sort(
+				(a, b) => (a.order ?? 999) - (b.order ?? 999) || (a.name || '').localeCompare(b.name || '')
+			);
+			for (const node of sorted) {
+				if (node.nodeType === 'collection') return node;
+				const child = node.children?.length ? firstCollectionNode(node.children) : null;
+				if (child) return child;
+			}
+			return null;
+		};
+
+		const node = firstCollectionNode(collections);
+		if (node) {
 			const pathValue = node.path || `/collection/${node._id}`;
 			return `/${getLocale()}${pathValue.startsWith("/") ? pathValue : `/${pathValue}`}`;
 		}

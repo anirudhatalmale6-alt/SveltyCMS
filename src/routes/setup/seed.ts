@@ -492,6 +492,27 @@ export async function seedPresetCollections(
     });
   }
 
+  // Persist the order the preset declares. Without this the manifest has no
+  // collectionOrder, every node reconciles to the default order 999, and the
+  // "first collection" falls back to whatever the filesystem scan happened to
+  // yield (alphabetical) — so the post-setup redirect and the sidebar disagree
+  // from the first restart onwards. Written after writePresetCollectionFiles
+  // because compilation (and replaceAll purge) rewrites the manifest.
+  try {
+    const { setCollectionOrder } = await import("@utils/collection-order.server");
+    const order: Record<string, number> = {};
+    schemas.forEach((schema, index) => {
+      const id = String(schema._id || schema.name || "");
+      if (id) order[id] = index;
+    });
+    if (Object.keys(order).length > 0) {
+      await setCollectionOrder(order, _tenantId);
+    }
+  } catch (err) {
+    // Ordering is a nicety, not a prerequisite — never fail setup over it.
+    logger.warn("⚠️ Failed to persist preset collection order:", err);
+  }
+
   return schemas;
 }
 

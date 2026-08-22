@@ -151,6 +151,51 @@ describe("calculateReconciledOperations", () => {
     expect(result.prunedPaths).toHaveLength(0);
   });
 
+  // ── Ordering precedence ──────────────────────────────────────────────────
+  // Regression cover for the "first collection" drift: a preset declares
+  // posts → categories → authors, but every node reconciled to the UNORDERED
+  // sentinel (999), ties broke alphabetically, and the landing route changed
+  // from `posts` to `authors` on the first server restart.
+
+  const orderSchemas = () => [
+    makeSchema({ _id: "posts", name: "Posts", path: "/collection/posts", order: 0 }),
+    makeSchema({ _id: "categories", name: "Categories", path: "/collection/categories", order: 1 }),
+    makeSchema({ _id: "authors", name: "Authors", path: "/collection/authors", order: 2 }),
+  ];
+  const orderOf = (result: any) =>
+    Object.fromEntries(
+      result.operations
+        .filter((op: ContentNode) => op.nodeType === "collection")
+        .map((op: ContentNode) => [op._id, op.order]),
+    );
+
+  it("honours the order the schema declares when nothing else specifies one", () => {
+    const result = calculateReconciledOperations(orderSchemas(), [], [], null);
+    expect(orderOf(result)).toEqual({ posts: 0, categories: 1, authors: 2 });
+  });
+
+  it("ignores a manifest full of the UNORDERED sentinel", () => {
+    // An earlier boot persisted every node back to the manifest as 999. That is
+    // "no order set", not a user reorder, so it must not out-rank the schema.
+    const manifest = { posts: 999, categories: 999, authors: 999 };
+    const result = calculateReconciledOperations(orderSchemas(), [], [], null, manifest);
+    expect(orderOf(result)).toEqual({ posts: 0, categories: 1, authors: 2 });
+  });
+
+  it("lets a real manifest position win over the schema order", () => {
+    const manifest = { authors: 0, posts: 7 };
+    const result = calculateReconciledOperations(orderSchemas(), [], [], null, manifest);
+    expect(orderOf(result)).toMatchObject({ authors: 0, posts: 7, categories: 1 });
+  });
+
+  it("keeps a position already recorded on the node", () => {
+    const dbNodes = [
+      makeDbNode({ _id: "authors" as any, name: "Authors", path: "/collection/authors", order: 0 }),
+    ];
+    const result = calculateReconciledOperations(orderSchemas(), dbNodes, [], null);
+    expect(orderOf(result)).toMatchObject({ authors: 0, posts: 0, categories: 1 });
+  });
+
   it("merges existing DB node with FS schema (schema._id wins)", () => {
     const schemas = [makeSchema({ _id: "posts", name: "Posts", path: "/collection/posts" })];
     const dbNodes = [

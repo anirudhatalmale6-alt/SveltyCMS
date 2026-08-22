@@ -15,6 +15,7 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { UNORDERED } from "@src/content/types";
 import { logger } from "@utils/logger";
 import { getCompiledCollectionsPath } from "./tenant.server";
 
@@ -130,8 +131,11 @@ export function buildOrganizationalManifestFromNodes(
     const id = node._id?.toString();
     if (!id || !node.path || !node.name || !node.nodeType) continue;
 
-    if (node.nodeType === "collection") {
-      order[id] = node.order ?? 0;
+    // Only record real positions. Writing the UNORDERED sentinel back would make
+    // the manifest look like an explicit user reorder and permanently out-rank
+    // any order the schema declares.
+    if (node.nodeType === "collection" && node.order !== undefined && node.order !== UNORDERED) {
+      order[id] = node.order;
     }
 
     if (node.nodeType === "category" || node.source === "builder") {
