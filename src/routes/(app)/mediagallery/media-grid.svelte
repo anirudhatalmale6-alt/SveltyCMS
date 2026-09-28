@@ -233,7 +233,10 @@
 				</p>
 			</div>
 
-			<Button variant="tertiary" onclick={() => fileUploadInput?.click()}>
+			<!-- Same action as the header Upload button, so it must be the same
+			     colour. It was tertiary (blue) against the header's primary
+			     (green) — two colours for one action on one screen. -->
+			<Button variant="primary" onclick={() => fileUploadInput?.click()}>
 				<iconify-icon icon="mdi:plus" width="18"></iconify-icon>
 				<span>{mediagallery_upload_first()}</span>
 			</Button>

@@ -1565,7 +1565,9 @@ Handles all field types and validation automatically
 
 				<StickyActions>
 					<div class="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
-						<div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+						<!-- flex-wrap: the action row used to squeeze its buttons instead of
+						     wrapping, which clipped the longer labels. -->
+						<div class="flex flex-col sm:flex-row flex-wrap items-center gap-2 w-full sm:w-auto">
 							<Button
 								variant="error"
 								type="button"

@@ -748,7 +748,7 @@
 
 			<Button
 				size="sm"
-				color="var(--color-primary-500)"
+				variant="primary"
 				onclick={() => fileUploadInput?.click()}
 				disabled={isUploading}
 				aria-busy={isUploading}

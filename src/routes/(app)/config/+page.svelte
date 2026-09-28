@@ -6,7 +6,6 @@
 
 <script lang="ts">
 	import AdminPageShell from '@components/admin-page-shell.svelte';
-	import AdminCard from '@components/admin-card.svelte';
 	import Slot from '@components/system/slot.svelte';
 	import AdminZone from '@src/components/system/admin-zone.svelte';
 	import PermissionGuard from '@src/components/permission-guard.svelte';
@@ -355,15 +354,53 @@
 	backUrl="/"
 	icon="material-symbols:build-circle"
 >
-	<AdminCard
-		class="border border-surface-500/30 bg-white p-4 shadow-sm backdrop-blur-md dark:border-surface-500/40 dark:bg-surface-900/50"
-	>
+	<!--
+		Elevation hierarchy: page → recessed panel → raised tiles.
+		The panel used to be an AdminCard, i.e. the SAME surface token as the
+		tiles it contains, and the tiles only looked separate because they were
+		hardcoded `bg-white`. A recessed panel gives the tiles their contrast back
+		from the token layer, in both themes and under every theme preset.
+	-->
+	<section class="config-panel p-4 backdrop-blur-md">
+		<!-- Section heading: one hue in both themes (it was tertiary blue in light,
+		     primary green in dark, which read as a link that changes colour). -->
 		<h2
-			class="h2 mb-4 text-center font-bold text-tertiary-600 dark:text-primary-500"
+			class="h2 mb-4 text-center font-bold text-surface-700 dark:text-surface-200"
 			in:fly={{ y: -10, duration: 300 }}
 		>
 			{config_page_subtitle()}
 		</h2>
+
+		<!--
+			ONE tile definition for both the guarded and the unguarded branch.
+			They used to be two hand-copied blocks that had drifted apart:
+			the guarded copy was missing the `group` class (so every
+			`group-hover:` state on its icon and label was dead), its dark
+			surface was surface-900 against the other's surface-800, and its
+			label inherited the body colour where the other used surface-600.
+			Every tile now renders from this snippet, so they cannot drift again.
+		-->
+		{#snippet configTile(item: (typeof configItems)[number])}
+			<a
+				href={item.href}
+				class="config-tile group flex h-24 flex-col items-center justify-center gap-2 p-2 text-center transition-all duration-300 ease-out hover:-translate-y-1 lg:h-32"
+				aria-label={tileLabel(item.id, item.label)}
+				target={item.target}
+				rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+				data-sveltekit-preload-data={item.target === '_blank' ? undefined : 'hover'}
+				onclick={handleMobileSidebarClose}
+			>
+				<iconify-icon
+					icon={item.icon}
+					class="config-tile-icon text-3xl transition-transform duration-300 group-hover:scale-110 lg:text-4xl"
+				></iconify-icon>
+				<p
+					class="config-tile-label w-full truncate text-xs font-medium uppercase tracking-wide lg:text-sm"
+				>
+					{tileLabel(item.id, item.label)}
+				</p>
+			</a>
+		{/snippet}
 
 		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
 			{#each configItems.filter((item) => !('visible' in item) || item.visible?.()) as item, idx (item.id || item.label)}
@@ -372,48 +409,12 @@
 				{#if usePermissionGuard}
 					<div in:fly={{ y: 20, delay: idx * 50, duration: 300 }}>
 						<PermissionGuard {...{ config: item.permission } as any}>
-							<a
-								href={item.href}
-								class="flex h-24 flex-col items-center justify-center gap-2 rounded border border-surface-500/30 bg-white p-2 text-center shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-tertiary-500 hover:bg-primary-500/10 hover:shadow-xl dark:bg-surface-900 dark:hover:border-primary-500 dark:hover:bg-surface-700 lg:h-32"
-								aria-label={tileLabel(item.id, item.label)}
-								target={item.target}
-								rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
-								data-sveltekit-preload-data={item.target === '_blank' ? undefined : 'hover'}
-								onclick={handleMobileSidebarClose}
-							>
-								<iconify-icon
-									icon={item.icon}
-									class={`text-3xl lg:text-4xl ${item.iconColor || ''} transition-transform duration-300 group-hover:scale-110`}
-								></iconify-icon>
-								<p
-									class="w-full truncate text-xs font-medium uppercase tracking-wide group-hover:text-tertiary-600 dark:group-hover:text-tertiary-500 dark:text-primary-500 lg:text-sm"
-								>
-									{tileLabel(item.id, item.label)}
-								</p>
-							</a>
+							{@render configTile(item)}
 						</PermissionGuard>
 					</div>
 				{:else}
 					<div in:fly={{ y: 20, delay: idx * 50, duration: 300 }}>
-						<a
-							href={item.href}
-							class="group flex h-24 flex-col items-center justify-center gap-2 rounded border border-surface-500/30 bg-white p-2 text-center shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-tertiary-500 hover:bg-primary-500/10 hover:shadow-xl dark:bg-surface-800 dark:hover:border-primary-500 dark:hover:bg-surface-700 lg:h-32"
-							aria-label={tileLabel(item.id, item.label)}
-							target={item.target}
-							rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
-							data-sveltekit-preload-data={item.target === '_blank' ? undefined : 'hover'}
-							onclick={handleMobileSidebarClose}
-						>
-							<iconify-icon
-								icon={item.icon}
-								class={`text-3xl lg:text-4xl ${item.iconColor || ''} transition-transform duration-300 group-hover:scale-110`}
-							></iconify-icon>
-							<p
-								class="w-full truncate text-xs font-medium uppercase tracking-wide text-surface-600 group-hover:text-tertiary-600 dark:text-primary-600 dark:group-hover:text-primary-500 lg:text-sm"
-							>
-								{tileLabel(item.id, item.label)}
-							</p>
-						</a>
+						{@render configTile(item)}
 					</div>
 				{/if}
 			{/each}
@@ -447,5 +448,73 @@
 			<Slot name="config" props={{ pluginStates: data?.pluginStates ?? {} }} />
 			<AdminZone zone="config" context={{ pluginStates: data?.pluginStates ?? {} }} />
 		</div>
-	</AdminCard>
+	</section>
 </AdminPageShell>
+
+<style>
+	/*
+	 * Tiles read the same --admin-* token layer as AdminCard, so they follow the
+	 * active theme preset (Corporate / Editorial / Operations), the density
+	 * setting and the card radius instead of the hardcoded `bg-white` /
+	 * `dark:bg-surface-800|900` they used before.
+	 */
+	.config-panel {
+		border-radius: var(--admin-radius-card, 0.75rem);
+		border: var(--admin-border-width, 1px) solid
+			var(--admin-border-subtle, var(--color-surface-200));
+		background-color: color-mix(in oklch, var(--color-surface-500) 6%, transparent);
+	}
+
+	.config-tile {
+		border-radius: var(--admin-radius-card, 0.75rem);
+		border: var(--admin-border-width, 1px) solid
+			var(--admin-border-default, var(--color-surface-200));
+		background-color: var(--admin-bg-card, var(--color-surface-50));
+		box-shadow: var(--admin-shadow-elevation, 0 1px 3px 0 rgb(0 0 0 / 0.1));
+	}
+
+	.config-tile:hover {
+		border-color: var(--color-primary-500);
+		background-color: color-mix(in oklch, var(--color-primary-500) 8%, transparent);
+		box-shadow: var(--admin-shadow-elevated, 0 10px 15px -3px rgb(0 0 0 / 0.1));
+	}
+
+	/* One accent system: neutral at rest, brand primary on hover/focus — in BOTH
+	   themes. The label used to be near-black in light and primary green in dark,
+	   so the same grid read as two different designs. */
+	.config-tile-icon,
+	.config-tile-label {
+		color: var(--admin-text-muted, var(--color-surface-500));
+		transition: color var(--admin-motion-base, 200ms) var(--admin-ease-out, ease-out);
+	}
+
+	.config-tile-label {
+		color: var(--admin-text-body, var(--color-surface-900));
+	}
+
+	.config-tile:hover .config-tile-icon,
+	.config-tile:hover .config-tile-label,
+	.config-tile:focus-visible .config-tile-icon,
+	.config-tile:focus-visible .config-tile-label {
+		color: var(--color-primary-600);
+	}
+
+	:global(html.dark) .config-tile:hover .config-tile-icon,
+	:global(html.dark) .config-tile:hover .config-tile-label,
+	:global(html.dark) .config-tile:focus-visible .config-tile-icon,
+	:global(html.dark) .config-tile:focus-visible .config-tile-label {
+		color: var(--color-primary-400);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.config-tile,
+		.config-tile-icon,
+		.config-tile-label {
+			transition: none;
+		}
+
+		.config-tile:hover {
+			transform: none;
+		}
+	}
+</style>

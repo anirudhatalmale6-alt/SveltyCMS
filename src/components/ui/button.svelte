@@ -239,7 +239,11 @@ and full ARIA accessibility. Supports progressive corner-shape angled corners.
 	aria-labelledby={labelledBy}
 	aria-describedby={describedBy}
 	class={cn(
-		'btn relative inline-flex items-center justify-center font-bold tracking-tight transition-all duration-200',
+		// whitespace-nowrap: a Button is a flex item in most toolbars, so without it
+		// the label wraps or clips as soon as the row is tight (measured: "Export
+		// Group JSON" in the settings action bar rendered at 100px with
+		// scrollWidth > clientWidth). Rows should wrap, labels should not.
+		'btn relative inline-flex items-center justify-center whitespace-nowrap font-bold tracking-tight transition-all duration-200',
 		'active:scale-[0.98] hover:brightness-110 active:brightness-95',
 		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-surface-500 dark:focus-visible:ring-surface-300',
 		variantClass,
